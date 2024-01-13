@@ -1,10 +1,10 @@
 extends Node
 signal tts_generated_speech
 
-const ELEVENLABS_API_KEY : String = "907bc085fbd00d0576f7fea0fa8748fc"
+const ELEVENLABS_API_KEY : String = ""
+const ELEVENLABS_URL : String = "https://api.elevenlabs.io/v1/text-to-speech/"
 const MALE_VOICE_CODE : String = "N2lVS1w4EtoT3dr4eOWO"
 const FEMALE_VOICE_CODE : String = "XB0fDUnXU5powFXDhCwa"
-const ENDPOINT : String = "https://api.elevenlabs.io/v1/text-to-speech/"
 const TTS_AUDIO_PATH = "user://tts_audio.mp3"
 
 var character_code : String = MALE_VOICE_CODE
@@ -12,10 +12,17 @@ var use_stream_mode : bool = false
 var audio_stream_player : AudioStreamPlayer
 var audio_stream : AudioStream
 
+var http_request : HTTPRequest
+
 var endpoint : String
 var headers : PoolStringArray
 var accept: String
-var http_request : HTTPRequest
+
+func _ready():
+	_initialize()
+	var text = "Luke, I am your father"
+	call_tts(text)
+
 
 func _initialize():
 	# Create httprequest node
@@ -30,26 +37,24 @@ func _initialize():
 	
 	# Endpoint and headers change depending on if using stream mode
 	if use_stream_mode == true:
-		endpoint = ENDPOINT + character_code + "/stream"
+		endpoint = ELEVENLABS_URL + character_code + "/stream"
 		audio_stream = AudioStreamSample.new()
-		accept = "accept: */*"
-		headers = PoolStringArray([accept, "xi-api-key: " + ELEVENLABS_API_KEY, "Content-Type: application/json"])
+		headers = PoolStringArray(["accept: */*", "xi-api-key: " + ELEVENLABS_API_KEY, "Content-Type: application/json"])
 	else:
-		endpoint = ENDPOINT + character_code
+		endpoint = ELEVENLABS_URL + character_code
 		audio_stream = AudioStreamMP3.new()
-		accept = "accept: audio/mpeg"
-		headers = PoolStringArray([accept, "xi-api-key: " + ELEVENLABS_API_KEY, "Content-Type: application/json"])
+		headers = PoolStringArray(["accept: audio/mpeg", "xi-api-key: " + ELEVENLABS_API_KEY, "Content-Type: application/json"])
+
+func call_tts(text):
+	print(text)
+	_call_tts_elevenlabs(text)
 
 
-
-func _call_elevenlabs(text):
-	print("calling Eleven Labs TTS")
+func _call_tts_elevenlabs(text):
 	var body = JSON.print({
 		"text": text,
 		"voice_settings": {"stability": 0, "similarity_boost": 0}
 	})
-	
-	# Now call Eleven Labs
 	var error = http_request.request(endpoint, headers, true, HTTPClient.METHOD_POST, body)
 	
 	if error != OK:
@@ -75,9 +80,3 @@ func _on_request_completed(result, response_code, headers, body):
 	audio_stream_player.play()
 	
 	emit_signal("tts_generated_speech")
-
-func _ready():
-	_initialize()
-	var text = "Luke, I am your father"
-	print(text)
-	_call_elevenlabs(text)
