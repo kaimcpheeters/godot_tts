@@ -7,16 +7,12 @@ const MALE_VOICE_CODE : String = "N2lVS1w4EtoT3dr4eOWO"
 const FEMALE_VOICE_CODE : String = "XB0fDUnXU5powFXDhCwa"
 const TTS_AUDIO_PATH = "user://tts_audio.mp3"
 
-var character_code : String = MALE_VOICE_CODE
 var use_stream_mode : bool = false
 var audio_stream_player : AudioStreamPlayer
 var audio_stream : AudioStream
-
 var http_request : HTTPRequest
-
 var endpoint : String
 var headers : PoolStringArray
-var accept: String
 
 func _ready():
 	_initialize()
@@ -25,32 +21,27 @@ func _ready():
 
 
 func _initialize():
-	# Create httprequest node
 	http_request = HTTPRequest.new()
 	add_child(http_request)
 	http_request.set_download_file(TTS_AUDIO_PATH)
 	http_request.connect("request_completed", self, "_on_request_completed")
 	
-	# Create audio player node for speech playback
 	audio_stream_player = AudioStreamPlayer.new()
 	add_child(audio_stream_player)
 	
-	# Endpoint and headers change depending on if using stream mode
-	if use_stream_mode == true:
-		endpoint = ELEVENLABS_URL + character_code + "/stream"
+func call_tts(text, voice_code=MALE_VOICE_CODE):
+	print(text)
+	_call_tts_elevenlabs(text, voice_code)
+
+func _call_tts_elevenlabs(text, voice_code):
+	if use_stream_mode:
+		endpoint = ELEVENLABS_URL + voice_code + "/stream"
 		audio_stream = AudioStreamSample.new()
 		headers = PoolStringArray(["accept: */*", "xi-api-key: " + ELEVENLABS_API_KEY, "Content-Type: application/json"])
 	else:
-		endpoint = ELEVENLABS_URL + character_code
+		endpoint = ELEVENLABS_URL + voice_code
 		audio_stream = AudioStreamMP3.new()
 		headers = PoolStringArray(["accept: audio/mpeg", "xi-api-key: " + ELEVENLABS_API_KEY, "Content-Type: application/json"])
-
-func call_tts(text):
-	print(text)
-	_call_tts_elevenlabs(text)
-
-
-func _call_tts_elevenlabs(text):
 	var body = JSON.print({
 		"text": text,
 		"voice_settings": {"stability": 0, "similarity_boost": 0}
