@@ -1,34 +1,18 @@
 extends Node
+signal tts_generated_speech
 
-# Signal for when speech is generated
-signal ElevenLabs_generated_speech
-
-# Your Eleven Labs API key
-export var api_key : String = ""
-if api_key == "":
-	push_error("API Key cannot be an empty string.")
-
+const ELEVENLABS_API_KEY : String = ""
 const MALE_VOICE_CODE : String = "N2lVS1w4EtoT3dr4eOWO"
 const FEMALE_VOICE_CODE : String = "XB0fDUnXU5powFXDhCwa"
+const ENDPOINT : String = "https://api.elevenlabs.io/v1/text-to-speech/"
 
-export var character_code : String = MALE_VOICE_CODE
+var character_code : String = MALE_VOICE_CODE
+var use_stream_mode : bool = false
+var audio_stream_player : AudioStreamPlayer
+var audio_stream : AudioStream
 
-# Whether to use audio stream endpoint
-export(bool) var use_stream_mode = false
-
-# The endpoint will actually include the character code below
-var endpoint : String = "https://api.elevenlabs.io/v1/text-to-speech/"
-
-# The headers for the request required by Eleven Labs
-var headers
-
-# Audiostream player used to play speech
-var eleven_labs_speech_player : AudioStreamPlayer
-
-# Audiostream used for speech object produced by API
-var eleven_labs_stream
-
-# HTTP Request node used to query Eleven Labs API
+var endpoint : String
+var headers : PoolStringArray
 var http_request : HTTPRequest
 
 func _initialize():
@@ -39,23 +23,22 @@ func _initialize():
 	http_request.connect("request_completed", self, "_on_request_completed")
 	
 	# Create audio player node for speech playback
-	eleven_labs_speech_player = AudioStreamPlayer.new()
-	add_child(eleven_labs_speech_player)
+	audio_stream_player = AudioStreamPlayer.new()
+	add_child(audio_stream_player)
 	
 	# Endpoint and headers change depending on if using stream mode
 	if use_stream_mode == true:
-		endpoint = endpoint + character_code + "/stream"
-		eleven_labs_stream = AudioStreamSample.new()
-		headers = PoolStringArray(["accept: */*", "xi-api-key: " + api_key, "Content-Type: application/json"])
+		endpoint = ENDPOINT + character_code + "/stream"
+		audio_stream = AudioStreamSample.new()
+		headers = PoolStringArray(["accept: */*", "xi-api-key: " + ELEVENLABS_API_KEY, "Content-Type: application/json"])
 	else:
-		endpoint = endpoint + character_code
-		eleven_labs_stream = AudioStreamMP3.new()
-		headers = PoolStringArray(["accept: audio/mpeg", "xi-api-key: " + api_key, "Content-Type: application/json"])
+		endpoint = ENDPOINT + character_code
+		audio_stream = AudioStreamMP3.new()
+		headers = PoolStringArray(["accept: audio/mpeg", "xi-api-key: " + ELEVENLABS_API_KEY, "Content-Type: application/json"])
 
 
-# Call Eleven labs API for text to speech	
-func call_ElevenLabs(text):
-	#print("calling Eleven Labs TTS")
+func call_elevenlabs(text):
+	print("calling Eleven Labs TTS")
 	var body = JSON.print({
 		"text": text,
 		"voice_settings": {"stability": 0, "similarity_boost": 0}
@@ -68,7 +51,6 @@ func call_ElevenLabs(text):
 		push_error("Something Went Wrong!")
 		print(error)
 		
-# Called when response received from Eleven Labs		
 func _on_request_completed(result, responseCode, headers, body):
 	# Should recieve 200 if all is fine; if not print code
 	if responseCode != 200:
@@ -83,32 +65,14 @@ func _on_request_completed(result, responseCode, headers, body):
 	var file = File.new()
 	var err = file.open("user://elevenlabs.mp3", File.READ)
 	var bytes = file.get_buffer(file.get_len())
-	eleven_labs_stream.data = bytes 
-	eleven_labs_speech_player.set_stream(eleven_labs_stream)
-	eleven_labs_speech_player.play()
+	audio_stream.data = bytes 
+	audio_stream_player.set_stream(audio_stream)
+	audio_stream_player.play()
 	
-	# Let other nodes know that AI generated dialogue is ready from GPT	
-	emit_signal("ElevenLabs_generated_speech")
-	
-# Set new API key
-func set_api_key(new_api_key):
-		api_key = new_api_key
-		if use_stream_mode == true:
-			headers = PoolStringArray(["accept: */*", "xi-api-key: " + api_key, "Content-Type: application/json"])
-		else:
-			headers = PoolStringArray(["accept: audio/mpeg", "xi-api-key: " + api_key, "Content-Type: application/json"])
-
-		
-# Set new character code		
-func set_character_code(new_code):
-	character_code = new_code
-	if use_stream_mode == true:
-		endpoint = "https://api.elevenlabs.io/v1/text-to-speech/" + character_code + "/stream"
-	else:
-		endpoint = "https://api.elevenlabs.io/v1/text-to-speech/" + character_code
+	emit_signal("tts_generated_speech")
 
 func _ready():
 	_initialize()
 	var text = "Luke, I am your father"
 	print(text)
-	call_ElevenLabs(text)
+	call_elevenlabs(text)
