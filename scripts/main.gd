@@ -4,13 +4,14 @@ extends Node
 signal ElevenLabs_generated_speech
 
 # Your Eleven Labs API key
-export var api_key : String = "insert your Eleven Labs API Key" setget set_api_key
+export var api_key : String = ""
+if api_key == "":
+	push_error("API Key cannot be an empty string.")
 
-# Character code used for voice to use - insert your proper character code here instead of the placeholder
-export var character_code : String = "nccuBdAiU0VZsr2UBFyD" setget set_character_code 
+const MALE_VOICE_CODE : String = "N2lVS1w4EtoT3dr4eOWO"
+const FEMALE_VOICE_CODE : String = "XB0fDUnXU5powFXDhCwa"
 
-# Male: N2lVS1w4EtoT3dr4eOWO
-# Female: XB0fDUnXU5powFXDhCwa
+export var character_code : String = MALE_VOICE_CODE
 
 # Whether to use audio stream endpoint
 export(bool) var use_stream_mode = false
@@ -30,7 +31,7 @@ var eleven_labs_stream
 # HTTP Request node used to query Eleven Labs API
 var http_request : HTTPRequest
 
-func _ready():
+func _initialize():
 	# Create httprequest node
 	http_request = HTTPRequest.new()
 	add_child(http_request)
@@ -50,8 +51,8 @@ func _ready():
 		endpoint = endpoint + character_code
 		eleven_labs_stream = AudioStreamMP3.new()
 		headers = PoolStringArray(["accept: audio/mpeg", "xi-api-key: " + api_key, "Content-Type: application/json"])
-	
-	
+
+
 # Call Eleven labs API for text to speech	
 func call_ElevenLabs(text):
 	#print("calling Eleven Labs TTS")
@@ -91,12 +92,12 @@ func _on_request_completed(result, responseCode, headers, body):
 	
 # Set new API key
 func set_api_key(new_api_key):
-	api_key = new_api_key
-	if use_stream_mode == true:
-		headers = PoolStringArray(["accept: */*", "xi-api-key: " + api_key, "Content-Type: application/json"])
-	else:
-		headers = PoolStringArray(["accept: audio/mpeg", "xi-api-key: " + api_key, "Content-Type: application/json"])
-		
+		api_key = new_api_key
+		if use_stream_mode == true:
+			headers = PoolStringArray(["accept: */*", "xi-api-key: " + api_key, "Content-Type: application/json"])
+		else:
+			headers = PoolStringArray(["accept: audio/mpeg", "xi-api-key: " + api_key, "Content-Type: application/json"])
+
 		
 # Set new character code		
 func set_character_code(new_code):
@@ -105,3 +106,9 @@ func set_character_code(new_code):
 		endpoint = "https://api.elevenlabs.io/v1/text-to-speech/" + character_code + "/stream"
 	else:
 		endpoint = "https://api.elevenlabs.io/v1/text-to-speech/" + character_code
+
+func _ready():
+	_initialize()
+	var text = "Luke, I am your father"
+	print(text)
+	call_ElevenLabs(text)
