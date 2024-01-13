@@ -13,6 +13,7 @@ var audio_stream : AudioStream
 
 var endpoint : String
 var headers : PoolStringArray
+var accept: String
 var http_request : HTTPRequest
 
 func _initialize():
@@ -30,14 +31,17 @@ func _initialize():
 	if use_stream_mode == true:
 		endpoint = ENDPOINT + character_code + "/stream"
 		audio_stream = AudioStreamSample.new()
-		headers = PoolStringArray(["accept: */*", "xi-api-key: " + ELEVENLABS_API_KEY, "Content-Type: application/json"])
+		accept = "accept: */*"
+		headers = PoolStringArray([accept, "xi-api-key: " + ELEVENLABS_API_KEY, "Content-Type: application/json"])
 	else:
 		endpoint = ENDPOINT + character_code
 		audio_stream = AudioStreamMP3.new()
-		headers = PoolStringArray(["accept: audio/mpeg", "xi-api-key: " + ELEVENLABS_API_KEY, "Content-Type: application/json"])
+		accept = "accept: audio/mpeg"
+		headers = PoolStringArray([accept, "xi-api-key: " + ELEVENLABS_API_KEY, "Content-Type: application/json"])
 
 
-func call_elevenlabs(text):
+
+func _call_elevenlabs(text):
 	print("calling Eleven Labs TTS")
 	var body = JSON.print({
 		"text": text,
@@ -75,4 +79,4 @@ func _ready():
 	_initialize()
 	var text = "Luke, I am your father"
 	print(text)
-	call_elevenlabs(text)
+	_call_elevenlabs(text)
